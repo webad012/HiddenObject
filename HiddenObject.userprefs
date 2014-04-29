@@ -1,8 +1,8 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Scripts\PickUpController.cs">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Scripts\MainGameController.cs">
     <Files>
-      <File FileName="Assets\Scripts\MainGameController.cs" Line="97" Column="134" />
+      <File FileName="Assets\Scripts\MainGameController.cs" Line="303" Column="4" />
       <File FileName="Assets\Scripts\PickUpController.cs" Line="10" Column="3" />
     </Files>
   </MonoDevelop.Ide.Workbench>
