@@ -4,6 +4,7 @@ using System.Collections;
 public class PickUpController : MonoBehaviour 
 {
 	private MainGameController gameController;
+	//private Boundary boundary;
 
 	void Start()
 	{
@@ -11,6 +12,7 @@ public class PickUpController : MonoBehaviour
 		if (gameControllerObject != null) 
 		{
 			gameController = gameControllerObject.GetComponent<MainGameController>();
+			//boundary = gameController.GetBoundary();
 			
 		} else 
 		{
@@ -19,9 +21,16 @@ public class PickUpController : MonoBehaviour
 		}
 	}
 
+	void Update()
+	{
+		/*Vector3 tmpPos = transform.position;
+		tmpPos.x = Mathf.Clamp (transform.position.x, boundary.xMin, boundary.xMax);
+		tmpPos.z = Mathf.Clamp (transform.position.z, boundary.zMin, boundary.zMax);
+		transform.position = tmpPos;*/
+	}
+
 	void OnMouseDown()
 	{
-		//Destroy (gameObject);
 		gameController.PickUpSelected(gameObject);
 	}
 }

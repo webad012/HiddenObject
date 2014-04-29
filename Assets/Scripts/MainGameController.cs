@@ -20,21 +20,54 @@ public class PicUps
 	public GameObject pickUp1;
 	public GameObject pickUp2;
 	public GameObject pickUp3;
+	public GameObject pickUp4;
+	public GameObject pickUp5;
+	public GameObject pickUp6;
+}
+
+[System.Serializable]
+public class Cameras
+{
+	public Camera mainCamera;
+	public Camera loadingCamera;
 }
 
 public class MainGameController : MonoBehaviour 
 {
 	public Boundary boundary;
 	public PicUps pickUps;
+	public Cameras cameras;
+	public GUIText loadingText;
+	public GUIText timerText;
 
 	private int numberOfPickUps = 50;
 	private List<GameObject> pickUpList = new List<GameObject>();
 	Dictionary<string, int> pickUpDisplayList = new Dictionary<string, int> ();
 	private Vector2 scrollPosition = Vector2.zero;
 
+	private bool gameLoaded = false;
+	private float loadingTimeout = 5;
+	private float loadingStartTime;
+	private GameObject loadingObject;
+	private float timerStartTime = 0;
+	private float timerTimeout = 60; // 60s
+
 	// Use this for initialization
 	void Start () 
 	{
+		timerText.text = "";
+		timerStartTime = Time.time;
+		cameras.mainCamera.enabled = false;
+		cameras.loadingCamera.enabled = true;
+		loadingStartTime = Time.time;
+
+		loadingObject = GameObject.FindWithTag ("Loading");
+		if (loadingObject == null)
+		{
+			Debug.Log("Cannot find 'Loading' object.");
+            
+        }
+
 		GeneratePickUps ();
 		GeneratePickUpsDisplayList ();
 	}
@@ -43,36 +76,43 @@ public class MainGameController : MonoBehaviour
 	{
 		for (int i= 0; i<numberOfPickUps; i++) 
 		{
-			Vector3 instantiatePosition = GenerateRandomPosition();
-			//Quaternion instantiateRotation = Quaternion.identity;
-			//Quaternion instantiateRotation = Random.rotation;
-			//Quaternion instantiateRotation = Quaternion.Euler(Random.Range(0, 360), Random.Range(0, 360), 0);
-			
 			float randomPickup = UnityEngine.Random.value;
 			GameObject pickUpObject;
-			if(randomPickup < 0.3f)
+			if(randomPickup < 0.17f)
 			{
-				//pickUpObject = (GameObject)Instantiate(pickUps.pickUp1, instantiatePosition, instantiateRotation);
 				pickUpObject = (GameObject)Instantiate(pickUps.pickUp1);
 			}
-			else if(randomPickup < 0.6f)
+			else if(randomPickup < 0.34f)
 			{
-				//pickUpObject = (GameObject)Instantiate(pickUps.pickUp2, instantiatePosition, instantiateRotation);
 				pickUpObject = (GameObject)Instantiate(pickUps.pickUp2);
 			}
-			else
+			else if(randomPickup < 0.51f)
 			{
-				//pickUpObject = (GameObject)Instantiate(pickUps.pickUp3, instantiatePosition, instantiateRotation);
 				pickUpObject = (GameObject)Instantiate(pickUps.pickUp3);
+            }
+			else if(randomPickup < 0.68f)
+			{
+				pickUpObject = (GameObject)Instantiate(pickUps.pickUp4);
+            }
+			else if(randomPickup < 0.85f)
+			{
+				pickUpObject = (GameObject)Instantiate(pickUps.pickUp5);
+            }
+            else
+            {
+				pickUpObject = (GameObject)Instantiate(pickUps.pickUp6);
 			}
-			pickUpObject.transform.position = instantiatePosition;
+
+			pickUpObject.name = ObjectNameParse(pickUpObject.name);
+			pickUpObject.transform.position = GenerateRandomPickUpPosition();
+			pickUpObject.transform.rotation = Quaternion.Euler(pickUpObject.transform.rotation.eulerAngles.x, UnityEngine.Random.Range(0, 360), pickUpObject.transform.rotation.eulerAngles.z);
 			pickUpObject.rigidbody.freezeRotation = true;
 			pickUpObject.rigidbody.drag = 4.0f;
 			pickUpList.Add(pickUpObject);
 		}
 	}
 
-	Vector3 GenerateRandomPosition()
+	Vector3 GenerateRandomPickUpPosition()
 	{
 		float randomX = 0;
 		float randomZ = 0;
@@ -82,18 +122,81 @@ public class MainGameController : MonoBehaviour
 		return new Vector3(randomX, boundary.yMax, randomZ);
 	}
 
+	Quaternion GenerateRandomPickUpRotation()
+	{	
+		//return Quaternion.Euler(0, UnityEngine.Random.Range(0, 360), 0);
+		return Quaternion.identity;
+	}
+
 	void OnGUI()
 	{
-		int labelHeight = 20;
-		int labelWidth = 150;
-		scrollPosition = GUI.BeginScrollView (new Rect(0, 0, Screen.width, 100), scrollPosition, new Rect(0, 0, Screen.width, pickUpDisplayList.Count*labelHeight));
-		int count = 0;
-		foreach (KeyValuePair<string, int> pud in pickUpDisplayList) 
+		if (gameLoaded == true) 
 		{
-			GUI.Label(new Rect(0, count*labelHeight, labelWidth, labelHeight), count + ": " + pud.Key + " x" + pud.Value.ToString());
-			count++;
+			int labelHeight = 20;
+			int labelWidth = 150;
+			scrollPosition = GUI.BeginScrollView (new Rect (0, 0, 200, 100), scrollPosition, new Rect (0, 0, 150, pickUpDisplayList.Count * labelHeight));
+			int count = 0;
+			foreach (KeyValuePair<string, int> pud in pickUpDisplayList) 
+			{
+				GUI.Label (new Rect (0, count * labelHeight, labelWidth, labelHeight), count + ": " + pud.Key + " x" + pud.Value.ToString ());
+				count++;
+			}
+			GUI.EndScrollView ();
+
+			float guiTime = Time.time - timerStartTime;
+			int timerTimeLeft = Mathf.CeilToInt(timerTimeout - guiTime);
+			timerText.text = "Time left: " + timerTimeLeft;
+			/*if(timerTimeSpent > loadingTimeout)
+			{
+				
+				foreach(GameObject pu in pickUpList)
+				{
+					pu.rigidbody.isKinematic = true;
+				}
+			}*/
 		}
-		GUI.EndScrollView ();
+	}
+
+	void Update()
+	{
+		if(gameLoaded == false)
+		{
+			float loadingTimeSpent = Time.time - loadingStartTime;
+			if(loadingTimeSpent > loadingTimeout)
+			{
+
+				foreach(GameObject pu in pickUpList)
+				{
+					pu.rigidbody.isKinematic = true;
+				}
+			}
+
+			bool allStopped = true;
+			foreach(GameObject pu in pickUpList)
+			{
+				if(!pu.rigidbody.IsSleeping())
+				{
+					allStopped = false;
+				}
+			}
+
+			if(allStopped)
+			{
+				foreach(GameObject pu in pickUpList)
+				{
+					pu.rigidbody.isKinematic = true;
+				}
+				timerStartTime = Time.time;
+				gameLoaded = true;
+				cameras.mainCamera.enabled = true;
+				cameras.loadingCamera.enabled = false;
+				loadingText.text = "";
+				if(loadingObject != null)
+				{
+					Destroy(loadingObject);
+				}
+			}
+		}
 	}
 
 	void GeneratePickUpsDisplayList()
@@ -119,5 +222,10 @@ public class MainGameController : MonoBehaviour
 		pickUpList.Remove (pickUpObject);
 		Destroy (pickUpObject);
 		GeneratePickUpsDisplayList ();
+	}
+
+	string ObjectNameParse(string inName)
+	{
+		return inName.Remove (inName.Length - 7);
 	}
 }
