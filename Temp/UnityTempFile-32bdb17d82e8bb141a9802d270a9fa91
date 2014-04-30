@@ -4,11 +4,11 @@
 -out:Temp/Assembly-CSharp.dll
 -r:"C:/Program Files/Unity/Editor/Data/Managed/UnityEngine.dll"
 -r:"C:/Program Files/Unity/Editor/Data/Managed/UnityEditor.dll"
--define:UNITY_STANDALONE_WIN
+-define:UNITY_WEBPLAYER
+-define:WEBPLUG
 -define:ENABLE_MICROPHONE
 -define:ENABLE_TEXTUREID_MAP
 -define:ENABLE_AUDIO_FMOD
--define:UNITY_STANDALONE
 -define:ENABLE_MONO
 -define:ENABLE_SPRITES
 -define:ENABLE_TERRAIN
@@ -39,5 +39,3 @@
 Assets/Scripts/LoadingController.cs
 Assets/Scripts/MainGameController.cs
 Assets/Scripts/PickUpController.cs
--r:"C:/Program Files/Unity/Editor/Data/Mono\lib/mono/unity\System.Runtime.Serialization.dll"
--r:"C:/Program Files/Unity/Editor/Data/Mono\lib/mono/unity\System.Xml.Linq.dll"

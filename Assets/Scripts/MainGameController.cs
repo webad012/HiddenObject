@@ -42,6 +42,15 @@ public class Cameras
 
 public class MainGameController : MonoBehaviour 
 {
+	enum GameState
+	{
+		GameLoading,
+		GamePlaying,
+		GameShuffling,
+		GameWon,
+		GameLost
+	};
+
 	public Boundary boundary;
 	public PicUps pickUps;
 	public Cameras cameras;
@@ -55,14 +64,15 @@ public class MainGameController : MonoBehaviour
 	Dictionary<string, int> pickUpDisplayList = new Dictionary<string, int> ();
 	private Vector2 scrollPosition = Vector2.zero;
 
-	private bool gameLoaded = false;
+	//private bool gameLoaded = false;
+	private GameState gameState = GameState.GameLoading;
 	private float loadingTimeout = 5;
 	private float loadingStartTime;
-	private GameObject loadingObject;
+	private float shufflingTimeout = 5;
+	private float shufflingStartTime;
 	private float timerStartTime = 0;
 	private float timerTimeout = 60; // 60s
 
-	// Use this for initialization
 	void Start () 
 	{
 		timerText.text = "";
@@ -70,13 +80,6 @@ public class MainGameController : MonoBehaviour
 		cameras.mainCamera.enabled = false;
 		cameras.loadingCamera.enabled = true;
 		loadingStartTime = Time.time;
-
-		loadingObject = GameObject.FindWithTag ("Loading");
-		if (loadingObject == null)
-		{
-			Debug.Log("Cannot find 'Loading' object.");
-            
-        }
 
 		GenerateNonPickUps ();
 		GeneratePickUps ();
@@ -211,72 +214,139 @@ public class MainGameController : MonoBehaviour
 
 	void OnGUI()
 	{
-		if (gameLoaded == true) 
+		if (gameState == GameState.GamePlaying) 
 		{
 			int labelHeight = 20;
 			int labelWidth = 150;
 			scrollPosition = GUI.BeginScrollView (new Rect (0, 0, 200, 100), scrollPosition, new Rect (0, 0, 150, pickUpDisplayList.Count * labelHeight));
 			int count = 0;
-			foreach (KeyValuePair<string, int> pud in pickUpDisplayList) 
-			{
-				GUI.Label (new Rect (0, count * labelHeight, labelWidth, labelHeight), count + ": " + pud.Key + " x" + pud.Value.ToString ());
-				count++;
+			foreach (KeyValuePair<string, int> pud in pickUpDisplayList) {
+					GUI.Label (new Rect (0, count * labelHeight, labelWidth, labelHeight), count + ": " + pud.Key + " x" + pud.Value.ToString ());
+					count++;
 			}
 			GUI.EndScrollView ();
 
+			if (GUI.Button (new Rect (Screen.width - 100, 100, 100, 40), "Shuffle")) {
+					PerformShuffle ();
+			}
+
 			float guiTime = Time.time - timerStartTime;
-			int timerTimeLeft = Mathf.CeilToInt(timerTimeout - guiTime);
+			int timerTimeLeft = Mathf.CeilToInt (timerTimeout - guiTime);
+			timerText.text = "Time left: " + timerTimeLeft;
+		} 
+		else if (gameState == GameState.GameShuffling) 
+		{
+			float guiTime = Time.time - timerStartTime;
+			int timerTimeLeft = Mathf.CeilToInt (timerTimeout - guiTime);
 			timerText.text = "Time left: " + timerTimeLeft;
 		}
 	}
 
 	void Update()
 	{
-		if(gameLoaded == false)
+		if(gameState == GameState.GameLoading)
 		{
 			float loadingTimeSpent = Time.time - loadingStartTime;
 			if(loadingTimeSpent > loadingTimeout)
 			{
 				foreach(GameObject pu in pickUpList)
 				{
-					pu.rigidbody.isKinematic = true;
+					//pu.rigidbody.isKinematic = true;
+					pu.rigidbody.Sleep();
 				}
 				foreach(GameObject pu in nonPickUpList)
 				{
-					pu.rigidbody.isKinematic = true;
+					//pu.rigidbody.isKinematic = true;
+					pu.rigidbody.Sleep();
 				}
-			}
 
-			bool allStopped = true;
-			foreach(GameObject pu in pickUpList)
-			{
-				if(!pu.rigidbody.IsSleeping())
-				{
-					allStopped = false;
-				}
+				timerStartTime = Time.time;
+				gameState = GameState.GamePlaying;
+				cameras.mainCamera.enabled = true;
+				cameras.loadingCamera.enabled = false;
+                loadingText.text = "";
 			}
-
-			if(allStopped)
+		}
+		else if(gameState == GameState.GameShuffling)
+		{
+			float shufflingTimeSpent = Time.time - shufflingStartTime;
+			if(shufflingTimeSpent > shufflingTimeout)
 			{
 				foreach(GameObject pu in pickUpList)
 				{
-					pu.rigidbody.isKinematic = true;
+					//pu.rigidbody.isKinematic = true;
+					pu.rigidbody.Sleep();
 				}
 				foreach(GameObject pu in nonPickUpList)
 				{
-					pu.rigidbody.isKinematic = true;
+					//pu.rigidbody.isKinematic = true;
+					pu.rigidbody.Sleep();
 				}
-				timerStartTime = Time.time;
-				gameLoaded = true;
+
+				gameState = GameState.GamePlaying;
 				cameras.mainCamera.enabled = true;
 				cameras.loadingCamera.enabled = false;
-				loadingText.text = "";
-				if(loadingObject != null)
-				{
-					Destroy(loadingObject);
-				}
+                loadingText.text = "";
 			}
 		}
+		else if(gameState == GameState.GamePlaying)
+		{
+			foreach(GameObject pu in pickUpList)
+			{
+				pu.rigidbody.Sleep();
+			}
+			foreach(GameObject pu in nonPickUpList)
+            {
+                pu.rigidbody.Sleep();
+            }
+
+			float guiTime = Time.time - timerStartTime;
+			int timerTimeLeft = Mathf.CeilToInt (timerTimeout - guiTime);
+			if(timerTimeLeft == 0)
+			{
+				loadingText.text = "Game lost!\n'R' to reset";
+				gameState = GameState.GameLost;
+			}
+			else if(pickUpList.Count == 0)
+			{
+				loadingText.text = "Game Won!\n'R' to reset";
+				gameState = GameState.GameWon;
+			}
+        }
+		else if (gameState == GameState.GameWon
+		         || gameState == GameState.GameLost) 
+		{
+			if(Input.GetKeyDown(KeyCode.R))
+			{
+				Application.LoadLevel(Application.loadedLevel);
+			}
+		}
+    }
+    
+    void PerformShuffle()
+	{
+		timerText.text = "";
+		loadingText.text = "Shuffling";
+		shufflingStartTime = Time.time;
+		cameras.mainCamera.enabled = false;
+		cameras.loadingCamera.enabled = true;
+
+		foreach(GameObject pu in pickUpList)
+		{
+			//pu.rigidbody.isKinematic = false;
+			//pu.rigidbody.useGravity = true;
+			pu.transform.position = GenerateRandomPickUpPosition();
+			pu.rigidbody.WakeUp();
+		}
+		foreach(GameObject pu in nonPickUpList)
+		{
+			//pu.rigidbody.isKinematic = false;
+			//pu.rigidbody.useGravity = true;
+			pu.transform.position = GenerateRandomPickUpPosition();
+			pu.rigidbody.WakeUp();
+		}
+
+		gameState = GameState.GameShuffling;
 	}
 
 	void GeneratePickUpsDisplayList()
@@ -299,11 +369,14 @@ public class MainGameController : MonoBehaviour
 
 	public void PickUpSelected(GameObject pickUpObject)
 	{
-		if (!NonPickUpListContainsObjectByName (pickUpObject.name)) 
+		if (gameState == GameState.GamePlaying) 
 		{
-			pickUpList.Remove (pickUpObject);
-			Destroy (pickUpObject);
-			GeneratePickUpsDisplayList ();
+			if (!NonPickUpListContainsObjectByName (pickUpObject.name)) 
+			{
+				pickUpList.Remove (pickUpObject);
+				Destroy (pickUpObject);
+				GeneratePickUpsDisplayList ();
+			}
 		}
 	}
 
